@@ -110,10 +110,6 @@ _db_reset() {
     log_info "Running migrations..."
     airflow db migrate 2>&1 | tail -5
 
-    log_info "Recreating teams..."
-    AIRFLOW__CORE__EXECUTOR=LocalExecutor AIRFLOW__CORE__MULTI_TEAM=True airflow teams create team_alpha 2>/dev/null || true
-    AIRFLOW__CORE__EXECUTOR=LocalExecutor AIRFLOW__CORE__MULTI_TEAM=True airflow teams create team_beta 2>/dev/null || true
-
     log_info "DB reset complete. Run 'airflow-ctl.sh start' to restart services."
 }
 
@@ -128,7 +124,7 @@ case "${1:-help}" in
         echo "Usage: $(basename "$0") {start|stop|restart|status|logs [service]|db-reset}"
         echo ""
         echo "Services: api-server, scheduler, dag-processor"
-        echo "db-reset: Drop DB, recreate, migrate, recreate teams"
+        echo "db-reset: Drop DB, recreate, migrate"
         exit 1
         ;;
 esac

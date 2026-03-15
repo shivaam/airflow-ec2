@@ -6,8 +6,8 @@
 #   2. Install dev tooling (pnpm, docker-compose v2, breeze)
 #   3. Create Python venv + install Airflow, task-sdk, amazon provider
 #   4. Build all UI assets (main UI + simple auth manager UI)
-#   5. Write airflow.cfg (multi-team, S3 DAG bundles, ECS executor)
-#   6. Initialize DB + create teams
+#   5. Write airflow.cfg (LocalExecutor, S3 DAG bundle)
+#   6. Initialize DB
 #   7. Create test DAGs + upload to S3
 #   8. Start all services
 #
@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
 
 echo "============================================"
-echo "  Airflow Multi-Team ECS Executor Setup"
+echo "  Airflow Setup"
 echo "============================================"
 
 # ── 1. Clone repo ─────────────────────────────────────────────────────
@@ -88,8 +88,7 @@ cat > "${AIRFLOW_HOME}/airflow.cfg" << EOF
 sql_alchemy_conn = postgresql+psycopg2://${DB_USER}:${DB_PASS}@${DB_ENDPOINT}:5432/${DB_NAME}
 
 [core]
-executor = LocalExecutor;team_alpha=airflow.providers.amazon.aws.executors.ecs.ecs_executor.AwsEcsExecutor;team_beta=airflow.providers.amazon.aws.executors.ecs.ecs_executor.AwsEcsExecutor
-multi_team = True
+executor = LocalExecutor
 execution_api_server_url = http://localhost:8080/execution/
 auth_manager = airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager
 simple_auth_manager_all_admins = true
@@ -106,38 +105,14 @@ remote_base_log_folder = s3://${LOG_BUCKET}/logs
 remote_log_conn_id = aws_default
 
 [dag_processor]
-dag_bundle_config_list = [{"name": "team_alpha_dags", "classpath": "airflow.providers.amazon.aws.bundles.s3.S3DagBundle", "kwargs": {"bucket_name": "${DAG_BUCKET}", "prefix": "team_alpha"}, "team_name": "team_alpha"}, {"name": "team_beta_dags", "classpath": "airflow.providers.amazon.aws.bundles.s3.S3DagBundle", "kwargs": {"bucket_name": "${DAG_BUCKET}", "prefix": "team_beta"}, "team_name": "team_beta"}, {"name": "shared_dags", "classpath": "airflow.providers.amazon.aws.bundles.s3.S3DagBundle", "kwargs": {"bucket_name": "${DAG_BUCKET}", "prefix": "shared"}}]
-
-[team_alpha=aws_ecs_executor]
-cluster = alpha-cluster
-container_name = airflow-worker
-task_definition = ${ALPHA_TASK_DEF}
-subnets = ${PRIVATE_SUBNETS}
-security_groups = ${WORKER_SG}
-launch_type = FARGATE
-assign_public_ip = False
-region_name = ${REGION}
-
-[team_beta=aws_ecs_executor]
-cluster = beta-cluster
-container_name = airflow-worker
-task_definition = ${BETA_TASK_DEF}
-subnets = ${PRIVATE_SUBNETS}
-security_groups = ${WORKER_SG}
-launch_type = FARGATE
-assign_public_ip = False
-region_name = ${REGION}
+dag_bundle_config_list = [{"name": "dags", "classpath": "airflow.providers.amazon.aws.bundles.s3.S3DagBundle", "kwargs": {"bucket_name": "${DAG_BUCKET}", "prefix": "dags"}}]
 EOF
 log_info "Written to ${AIRFLOW_HOME}/airflow.cfg"
 
-# ── 5. Init DB + create teams ─────────────────────────────────────────
-log_step "6/8 Initializing DB and creating teams"
+# ── 5. Init DB ────────────────────────────────────────────────────────
+log_step "6/8 Initializing DB"
 PGPASSWORD="${DB_PASS}" psql -h "${DB_ENDPOINT}" -U "${DB_USER}" -d "${DB_NAME}" -c "SELECT 1;" > /dev/null
 airflow db migrate 2>&1 | tail -5
-
-AIRFLOW__CORE__EXECUTOR=LocalExecutor AIRFLOW__CORE__MULTI_TEAM=True airflow teams create team_alpha 2>/dev/null || log_info "team_alpha already exists"
-AIRFLOW__CORE__EXECUTOR=LocalExecutor AIRFLOW__CORE__MULTI_TEAM=True airflow teams create team_beta 2>/dev/null || log_info "team_beta already exists"
-AIRFLOW__CORE__EXECUTOR=LocalExecutor AIRFLOW__CORE__MULTI_TEAM=True airflow teams list
 
 # ── 6. Create test DAGs + upload to S3 ────────────────────────────────
 log_step "7/8 Deploying test DAGs to S3"

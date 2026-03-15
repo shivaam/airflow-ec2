@@ -15,38 +15,21 @@ We extracted a working, battle-tested deployment from a branch in the apache/air
 It has been deployed and used successfully. 19 deployment issues were encountered and solved.
 
 ### What works today
-- 4 CDK stacks: Infra (VPC, RDS, S3, ECR, NLB, IAM), EC2 (Airflow server), ECS (optional), Batch (optional)
+- Default: 2 CDK stacks (Infra + EC2) with LocalExecutor — simple, just works
+- Opt-in: ECS + Batch stacks for multi-team executor testing (`make deploy-ecs`)
 - 7 EC2 helper scripts with the `af` CLI (setup, services, branch switching, image building, DAG deployment)
 - SSM-only access (no SSH keys, no public endpoints)
-- Multi-team ECS/Batch executor testing
+- Makefile for laptop operations (deploy, ssh, tunnel, destroy)
+- Example configs for LocalExecutor and ECS multi-team
 - ~$6/day running cost, instant teardown
 
 ### What needs work
-- Currently hardcoded for multi-team ECS executor testing — needs to be generalized
-- ECS/Batch stacks should be truly optional (not deployed by default)
-- Default config should be single-team LocalExecutor (simplest useful setup)
-- Instance size, RDS size, region, Airflow branch should be parameterized
-- Test DAGs are inline heredocs in deploy-dags.sh — should be tracked files in `dags/`
-- No Makefile yet for laptop-side operations (deploy, ssh, destroy, status)
-
-## Direction
-
-### Phase 1: Generalize (next)
-- Make the default deployment simple: EC2 running Airflow with LocalExecutor
-- ECS/Batch stacks become opt-in for executor testing
-- Parameterize key settings (instance size, region, Airflow branch/repo)
-- Add Makefile for common operations from laptop
-
-### Phase 2: Polish
-- Test DAGs as tracked files
-- Better README with usage examples
+- Parameterize: instance size, RDS size, region, Airflow branch/repo
+- CLI tool for switching between executor configs
 - Cost guard (auto-stop EC2 after idle hours)
 - Multi-user support (stack name prefix)
-
-### Phase 3: Expand
 - GitHub Actions for CI-triggered deployment
 - EKS stack for KubernetesExecutor testing
-- Airflow system test runner integration
 
 ## Project Structure
 
@@ -54,6 +37,7 @@ It has been deployed and used successfully. 19 deployment issues were encountere
 cdk/              CDK infrastructure (TypeScript)
   lib/            12 source files — stacks + constructs
 ec2-scripts/      Scripts deployed to EC2 at /opt/airflow-scripts/
+configs/          Example airflow.cfg files (local, ecs-multi-team)
 dags/             Test DAGs (synced to S3)
 specs/            Research, architecture decisions, roadmap
 docs/             Operational docs, troubleshooting
@@ -62,12 +46,11 @@ docs/             Operational docs, troubleshooting
 ## Commands
 
 ```bash
-cd cdk
-npm install && npm run build
-npm run deploy              # deploy all stacks
-npm run deploy:ec2          # just EC2 (~2 min)
-npm run deploy:ecs          # just ECS (~30s)
-npm run destroy             # tear down everything
+make deploy                 # deploy Infra + EC2 (LocalExecutor)
+make deploy-ecs             # deploy all 4 stacks (+ ECS + Batch)
+make ssh                    # SSM shell into EC2
+make tunnel                 # port-forward 8080 for UI
+make destroy                # tear down everything
 ```
 
 ## Key Design Decisions

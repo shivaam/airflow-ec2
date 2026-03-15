@@ -5,16 +5,12 @@ import { EcsStack } from './ecs-stack';
 import { BatchStack } from './batch-stack';
 
 /**
- * 4-stack architecture:
- *
- *   AirflowInfra  (slow, deploy once)  — VPC, RDS, S3, ECR, NLB, IAM, SSM
- *   AirflowEc2   (medium, ~2 min)     — EC2 instance, NLB target, scripts
- *   AirflowEcs   (fast, ~30s)         — 2 ECS clusters + task defs
- *   AirflowBatch (fast, ~30s)         — Batch compute env + job queue + job def
+ * Default: 2 stacks (Infra + EC2) — LocalExecutor, simple setup.
+ * With -c executor=ecs: 4 stacks (+ ECS + Batch) — multi-team executor testing.
  *
  * Deploy:  npx cdk deploy --all
- * Destroy: npx cdk destroy AirflowBatch AirflowEcs AirflowEc2 AirflowInfra --force
- *          (destroy compute stacks first, then infra)
+ * ECS:    npx cdk deploy --all -c executor=ecs
+ * Destroy: npx cdk destroy --all --force
  */
 
 const app = new cdk.App();
@@ -23,6 +19,8 @@ const env = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION,
 };
+
+const executor = app.node.tryGetContext('executor');
 
 const infra = new InfraStack(app, 'AirflowInfra', {
   terminationProtection: false,
@@ -35,14 +33,16 @@ new Ec2Stack(app, 'AirflowEc2', {
   infra: infra.outputs,
 });
 
-new EcsStack(app, 'AirflowEcs', {
-  terminationProtection: false,
-  env,
-  infra: infra.outputs,
-});
+if (executor === 'ecs') {
+  new EcsStack(app, 'AirflowEcs', {
+    terminationProtection: false,
+    env,
+    infra: infra.outputs,
+  });
 
-new BatchStack(app, 'AirflowBatch', {
-  terminationProtection: false,
-  env,
-  infra: infra.outputs,
-});
+  new BatchStack(app, 'AirflowBatch', {
+    terminationProtection: false,
+    env,
+    infra: infra.outputs,
+  });
+}

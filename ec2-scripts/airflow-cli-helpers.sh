@@ -55,7 +55,7 @@ af() {
             cat "${AIRFLOW_HOME}/airflow.cfg"
             ;;
         teams)
-            AIRFLOW__CORE__EXECUTOR=LocalExecutor AIRFLOW__CORE__MULTI_TEAM=True airflow teams list
+            airflow teams list 2>/dev/null
             ;;
         dags)
             airflow dags list 2>/dev/null | head -30
@@ -82,19 +82,21 @@ af() {
             echo ""
             echo "Development:"
             echo "  af switch <branch>  Switch branch, rebuild, restart"
-            echo "  af rebuild        Rebuild + push worker image to ECR"
             echo "  af deploy-dags    Create test DAGs + upload to S3"
             echo ""
             echo "Inspection:"
             echo "  af db             Open psql to metadata DB"
             echo "  af ssm [param]    Show SSM params (or specific one)"
             echo "  af config         Show airflow.cfg"
-            echo "  af teams          List teams"
             echo "  af dags           List DAGs"
+            echo "  af tunnel         Show SSM tunnel command for UI"
+            echo ""
+            echo "ECS/Batch (requires ECS stacks):"
+            echo "  af rebuild        Rebuild + push worker image to ECR"
+            echo "  af teams          List teams"
             echo "  af ecs-tasks      List running ECS tasks"
             echo "  af batch-jobs     List running Batch jobs"
             echo "  af ecr-login      Authenticate Docker to ECR"
-            echo "  af tunnel         Show SSM tunnel command for UI"
             ;;
     esac
 }
