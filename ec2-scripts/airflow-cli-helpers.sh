@@ -26,11 +26,12 @@ af() {
             PGPASSWORD="${DB_PASS}" psql -h "${DB_ENDPOINT}" -U "${DB_USER}" -d "${DB_NAME}"
             ;;
         ssm)
+            source "${SCRIPTS_DIR}/env.sh"
             if [ -z "$2" ]; then
-                echo "All /airflow-test/ params:"
-                aws ssm get-parameters-by-path --path /airflow-test/ --query "Parameters[].{Name:Name,Value:Value}" --output table
+                echo "All ${SSM_PREFIX}/ params:"
+                aws ssm get-parameters-by-path --path ${SSM_PREFIX}/ --query "Parameters[].{Name:Name,Value:Value}" --output table
             else
-                aws ssm get-parameter --name "/airflow-test/$2" --query Parameter.Value --output text
+                aws ssm get-parameter --name "${SSM_PREFIX}/$2" --query Parameter.Value --output text
             fi
             ;;
         ecr-login)

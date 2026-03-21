@@ -9,6 +9,7 @@ export function createEc2(
   vpc: ec2.IVpc,
   sg: ec2.ISecurityGroup,
   role: iam.IRole,
+  ssmPrefix?: string,
 ): ec2.Instance {
   // Upload ec2_scripts/ as an S3 asset — CDK zips and uploads during deploy
   const scriptsAsset = new s3assets.Asset(scope, 'AirflowScripts', {
@@ -45,6 +46,9 @@ export function createEc2(
     'unzip -o /tmp/scripts.zip -d /opt/airflow-scripts/',
     'chmod +x /opt/airflow-scripts/*.sh',
     'chown -R ec2-user:ec2-user /opt/airflow-scripts',
+    '',
+    '# Write SSM prefix config for scripts',
+    `echo "SSM_PREFIX=${ssmPrefix || '/airflow-test'}" > /opt/airflow-scripts/ssm-prefix.conf`,
     '',
     '# Source CLI helpers in ec2-user bashrc',
     'echo "source /opt/airflow-scripts/airflow-cli-helpers.sh" >> /home/ec2-user/.bashrc',

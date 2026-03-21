@@ -19,24 +19,30 @@ if [ -f "${AIRFLOW_VENV}/bin/activate" ]; then
     source "${AIRFLOW_VENV}/bin/activate"
 fi
 
+# ── SSM prefix (written by CDK user data, defaults to /airflow-test) ───
+if [ -f /opt/airflow-scripts/ssm-prefix.conf ]; then
+    source /opt/airflow-scripts/ssm-prefix.conf
+fi
+export SSM_PREFIX="${SSM_PREFIX:-/airflow-test}"
+
 # ── Read SSM parameters (cached for the shell session) ─────────────────
 _ssm_get() {
     aws ssm get-parameter --name "$1" --query Parameter.Value --output text 2>/dev/null
 }
 
 if [ -z "$AIRFLOW_ENV_LOADED" ]; then
-    export REGION=$(_ssm_get /airflow-test/region)
-    export DB_ENDPOINT=$(_ssm_get /airflow-test/db-endpoint)
-    export DB_SECRET_ARN=$(_ssm_get /airflow-test/db-secret-arn)
-    export DB_NAME=$(_ssm_get /airflow-test/db-name)
-    export ECR_REPO=$(_ssm_get /airflow-test/ecr-repo)
-    export LOG_BUCKET=$(_ssm_get /airflow-test/log-bucket)
-    export DAG_BUCKET=$(_ssm_get /airflow-test/dag-bucket)
-    export NLB_DNS=$(_ssm_get /airflow-test/nlb-dns)
-    export ALPHA_TASK_DEF=$(_ssm_get /airflow-test/alpha-task-def)
-    export BETA_TASK_DEF=$(_ssm_get /airflow-test/beta-task-def)
-    export PRIVATE_SUBNETS=$(_ssm_get /airflow-test/private-subnets)
-    export WORKER_SG=$(_ssm_get /airflow-test/worker-sg)
+    export REGION=$(_ssm_get ${SSM_PREFIX}/region)
+    export DB_ENDPOINT=$(_ssm_get ${SSM_PREFIX}/db-endpoint)
+    export DB_SECRET_ARN=$(_ssm_get ${SSM_PREFIX}/db-secret-arn)
+    export DB_NAME=$(_ssm_get ${SSM_PREFIX}/db-name)
+    export ECR_REPO=$(_ssm_get ${SSM_PREFIX}/ecr-repo)
+    export LOG_BUCKET=$(_ssm_get ${SSM_PREFIX}/log-bucket)
+    export DAG_BUCKET=$(_ssm_get ${SSM_PREFIX}/dag-bucket)
+    export NLB_DNS=$(_ssm_get ${SSM_PREFIX}/nlb-dns)
+    export ALPHA_TASK_DEF=$(_ssm_get ${SSM_PREFIX}/alpha-task-def)
+    export BETA_TASK_DEF=$(_ssm_get ${SSM_PREFIX}/beta-task-def)
+    export PRIVATE_SUBNETS=$(_ssm_get ${SSM_PREFIX}/private-subnets)
+    export WORKER_SG=$(_ssm_get ${SSM_PREFIX}/worker-sg)
 
     # DB credentials from Secrets Manager
     _DB_SECRET=$(aws secretsmanager get-secret-value --secret-id "$DB_SECRET_ARN" --query SecretString --output text 2>/dev/null)

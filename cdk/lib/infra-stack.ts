@@ -21,20 +21,27 @@ export interface InfraOutputs {
   nlbDns?: string;
 }
 
+export interface InfraStackProps extends cdk.StackProps {
+  suffix?: string;
+}
+
 export class InfraStack extends cdk.Stack {
   public readonly outputs: InfraOutputs;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: InfraStackProps) {
     super(scope, id, props);
+
+    const suffix = props?.suffix || '';
+    const ssmPrefix = suffix ? `/airflow-test-${suffix}` : '/airflow-test';
 
     // 1. Network
     const { vpc, ec2Sg, dbSg, nlbSg, workerSg } = createNetwork(this);
 
     // 2. Storage
-    const { db, dbSecret, logBucket, dagBucket, ecrRepo } = createStorage(this, vpc, dbSg);
+    const { db, dbSecret, logBucket, dagBucket, ecrRepo } = createStorage(this, vpc, dbSg, suffix);
 
     // 3. IAM
-    const { ec2Role, ecsExecRole, taskRole } = createIam(this, logBucket, dagBucket, dbSecret, ecrRepo);
+    const { ec2Role, ecsExecRole, taskRole } = createIam(this, logBucket, dagBucket, dbSecret, ecrRepo, ssmPrefix);
 
     // 4. NLB — only needed for ECS/Batch executor (workers call back to Execution API)
     const executor = this.node.tryGetContext('executor');
@@ -47,18 +54,18 @@ export class InfraStack extends cdk.Stack {
     const p = (lid: string, name: string, value: string) =>
       new ssm.StringParameter(this, lid, { parameterName: name, stringValue: value });
 
-    p('SsmDbEndpoint', '/airflow-test/db-endpoint', db.dbInstanceEndpointAddress);
-    p('SsmDbPort', '/airflow-test/db-port', '5432');
-    p('SsmDbSecretArn', '/airflow-test/db-secret-arn', dbSecret.secretArn);
-    p('SsmDbName', '/airflow-test/db-name', 'airflow_db');
-    p('SsmEcrRepo', '/airflow-test/ecr-repo', ecrRepo.repositoryUri);
-    p('SsmWorkerSg', '/airflow-test/worker-sg', workerSg.securityGroupId);
-    p('SsmPrivateSubnets', '/airflow-test/private-subnets', privateSubnets);
-    p('SsmLogBucket', '/airflow-test/log-bucket', logBucket.bucketName);
-    p('SsmDagBucket', '/airflow-test/dag-bucket', dagBucket.bucketName);
-    p('SsmRegion', '/airflow-test/region', region);
+    p('SsmDbEndpoint', `${ssmPrefix}/db-endpoint`, db.dbInstanceEndpointAddress);
+    p('SsmDbPort', `${ssmPrefix}/db-port`, '5432');
+    p('SsmDbSecretArn', `${ssmPrefix}/db-secret-arn`, dbSecret.secretArn);
+    p('SsmDbName', `${ssmPrefix}/db-name`, 'airflow_db');
+    p('SsmEcrRepo', `${ssmPrefix}/ecr-repo`, ecrRepo.repositoryUri);
+    p('SsmWorkerSg', `${ssmPrefix}/worker-sg`, workerSg.securityGroupId);
+    p('SsmPrivateSubnets', `${ssmPrefix}/private-subnets`, privateSubnets);
+    p('SsmLogBucket', `${ssmPrefix}/log-bucket`, logBucket.bucketName);
+    p('SsmDagBucket', `${ssmPrefix}/dag-bucket`, dagBucket.bucketName);
+    p('SsmRegion', `${ssmPrefix}/region`, region);
     if (nlb) {
-      p('SsmNlbDns', '/airflow-test/nlb-dns', nlb.loadBalancerDnsName);
+      p('SsmNlbDns', `${ssmPrefix}/nlb-dns`, nlb.loadBalancerDnsName);
       new cdk.CfnOutput(this, 'NlbDns', { value: nlb.loadBalancerDnsName });
     }
 

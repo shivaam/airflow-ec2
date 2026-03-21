@@ -6,6 +6,7 @@ import { createEcs } from './ecs';
 
 export interface EcsStackProps extends cdk.StackProps {
   infra: InfraOutputs;
+  suffix?: string;
 }
 
 export class EcsStack extends cdk.Stack {
@@ -14,7 +15,10 @@ export class EcsStack extends cdk.Stack {
 
     const { vpc, ecrRepoUri, taskRoleArn, ecsExecRoleArn, nlbDns } = props.infra;
     if (!nlbDns) throw new Error('ECS stack requires NLB — deploy with -c executor=ecs');
-    const dagBucketName = `airflow-ecs-dags-${this.account}-${this.region}`;
+    const suffix = props.suffix || '';
+    const nameSuffix = suffix ? `-${suffix}` : '';
+    const ssmPrefix = suffix ? `/airflow-test-${suffix}` : '/airflow-test';
+    const dagBucketName = `airflow-ecs-dags${nameSuffix}-${this.account}-${this.region}`;
 
     const { alphaCluster, betaCluster, alphaTaskDef, betaTaskDef } = createEcs(
       this, vpc, ecrRepoUri, taskRoleArn, ecsExecRoleArn, nlbDns, dagBucketName,
@@ -24,9 +28,9 @@ export class EcsStack extends cdk.Stack {
     const p = (lid: string, name: string, value: string) =>
       new ssm.StringParameter(this, lid, { parameterName: name, stringValue: value });
 
-    p('SsmAlphaCluster', '/airflow-test/alpha-cluster', alphaCluster.clusterName);
-    p('SsmAlphaTaskDef', '/airflow-test/alpha-task-def', alphaTaskDef.family);
-    p('SsmBetaCluster', '/airflow-test/beta-cluster', betaCluster.clusterName);
-    p('SsmBetaTaskDef', '/airflow-test/beta-task-def', betaTaskDef.family);
+    p('SsmAlphaCluster', `${ssmPrefix}/alpha-cluster`, alphaCluster.clusterName);
+    p('SsmAlphaTaskDef', `${ssmPrefix}/alpha-task-def`, alphaTaskDef.family);
+    p('SsmBetaCluster', `${ssmPrefix}/beta-cluster`, betaCluster.clusterName);
+    p('SsmBetaTaskDef', `${ssmPrefix}/beta-task-def`, betaTaskDef.family);
   }
 }

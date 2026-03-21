@@ -6,6 +6,7 @@ import { createBatch } from './batch';
 
 export interface BatchStackProps extends cdk.StackProps {
   infra: InfraOutputs;
+  suffix?: string;
 }
 
 export class BatchStack extends cdk.Stack {
@@ -14,7 +15,10 @@ export class BatchStack extends cdk.Stack {
 
     const { vpc, workerSg, ecrRepoUri, taskRoleArn, ecsExecRoleArn, nlbDns } = props.infra;
     if (!nlbDns) throw new Error('Batch stack requires NLB — deploy with -c executor=ecs');
-    const dagBucketName = `airflow-ecs-dags-${this.account}-${this.region}`;
+    const suffix = props.suffix || '';
+    const nameSuffix = suffix ? `-${suffix}` : '';
+    const ssmPrefix = suffix ? `/airflow-test-${suffix}` : '/airflow-test';
+    const dagBucketName = `airflow-ecs-dags${nameSuffix}-${this.account}-${this.region}`;
 
     const { alpha, beta } = createBatch(
       this, vpc, workerSg, ecrRepoUri, taskRoleArn, ecsExecRoleArn, nlbDns, dagBucketName,
@@ -24,9 +28,9 @@ export class BatchStack extends cdk.Stack {
     const p = (lid: string, name: string, value: string) =>
       new ssm.StringParameter(this, lid, { parameterName: name, stringValue: value });
 
-    p('SsmAlphaBatchJobQueue', '/airflow-test/alpha-batch-job-queue', alpha.jobQueue.jobQueueName);
-    p('SsmAlphaBatchJobDef', '/airflow-test/alpha-batch-job-def', alpha.jobDef.jobDefinitionName);
-    p('SsmBetaBatchJobQueue', '/airflow-test/beta-batch-job-queue', beta.jobQueue.jobQueueName);
-    p('SsmBetaBatchJobDef', '/airflow-test/beta-batch-job-def', beta.jobDef.jobDefinitionName);
+    p('SsmAlphaBatchJobQueue', `${ssmPrefix}/alpha-batch-job-queue`, alpha.jobQueue.jobQueueName);
+    p('SsmAlphaBatchJobDef', `${ssmPrefix}/alpha-batch-job-def`, alpha.jobDef.jobDefinitionName);
+    p('SsmBetaBatchJobQueue', `${ssmPrefix}/beta-batch-job-queue`, beta.jobQueue.jobQueueName);
+    p('SsmBetaBatchJobDef', `${ssmPrefix}/beta-batch-job-def`, beta.jobDef.jobDefinitionName);
   }
 }

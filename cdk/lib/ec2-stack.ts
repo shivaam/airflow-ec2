@@ -6,6 +6,7 @@ import { registerNlbTarget } from './loadbalancers';
 
 export interface Ec2StackProps extends cdk.StackProps {
   infra: InfraOutputs;
+  suffix?: string;
 }
 
 export class Ec2Stack extends cdk.Stack {
@@ -13,9 +14,11 @@ export class Ec2Stack extends cdk.Stack {
     super(scope, id, props);
 
     const { vpc, ec2Sg, ec2Role, nlbArn } = props.infra;
+    const suffix = props.suffix || '';
+    const ssmPrefix = suffix ? `/airflow-test-${suffix}` : '/airflow-test';
 
     // 1. EC2 instance
-    const instance = createEc2(this, vpc, ec2Sg, ec2Role);
+    const instance = createEc2(this, vpc, ec2Sg, ec2Role, ssmPrefix);
 
     // 2. Register EC2 as NLB target (only when NLB exists — ECS executor mode)
     if (nlbArn) {

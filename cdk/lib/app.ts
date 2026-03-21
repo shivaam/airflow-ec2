@@ -21,28 +21,34 @@ const env = {
 };
 
 const executor = app.node.tryGetContext('executor');
+const suffix: string = app.node.tryGetContext('suffix') || '';
+const stackSuffix = suffix ? `-${suffix}` : '';
 
-const infra = new InfraStack(app, 'AirflowInfra', {
+const infra = new InfraStack(app, `AirflowInfra${stackSuffix}`, {
   terminationProtection: false,
   env,
+  suffix,
 });
 
-new Ec2Stack(app, 'AirflowEc2', {
+new Ec2Stack(app, `AirflowEc2${stackSuffix}`, {
   terminationProtection: false,
   env,
   infra: infra.outputs,
+  suffix,
 });
 
 if (executor === 'ecs') {
-  new EcsStack(app, 'AirflowEcs', {
+  new EcsStack(app, `AirflowEcs${stackSuffix}`, {
     terminationProtection: false,
     env,
     infra: infra.outputs,
+    suffix,
   });
 
-  new BatchStack(app, 'AirflowBatch', {
+  new BatchStack(app, `AirflowBatch${stackSuffix}`, {
     terminationProtection: false,
     env,
     infra: infra.outputs,
+    suffix,
   });
 }

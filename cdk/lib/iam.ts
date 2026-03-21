@@ -17,7 +17,9 @@ export function createIam(
   dagBucket: s3.IBucket,
   dbSecret: secretsmanager.ISecret,
   ecrRepo: ecr.IRepository,
+  ssmPrefix?: string,
 ): IamResources {
+  const ssmPath = ssmPrefix || '/airflow-test';
   // --- EC2 instance role ---
   const ec2Role = new iam.Role(scope, 'Ec2Role', {
     assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -51,12 +53,12 @@ export function createIam(
     }),
   );
 
-  // SSM Parameter Store — /airflow-test/* only
+  // SSM Parameter Store
   ec2Role.addToPolicy(
     new iam.PolicyStatement({
       actions: ['ssm:GetParameter', 'ssm:GetParameters'],
       resources: [
-        `arn:aws:ssm:${cdk.Stack.of(scope).region}:${cdk.Stack.of(scope).account}:parameter/airflow-test/*`,
+        `arn:aws:ssm:${cdk.Stack.of(scope).region}:${cdk.Stack.of(scope).account}:parameter${ssmPath}/*`,
       ],
     }),
   );
@@ -82,6 +84,19 @@ export function createIam(
     }),
   );
 
+  // Glue — start and monitor jobs (for GlueJobOperator testing)
+  ec2Role.addToPolicy(
+    new iam.PolicyStatement({
+      actions: [
+        'glue:StartJobRun',
+        'glue:GetJobRun',
+        'glue:GetJobRuns',
+        'glue:GetJob',
+      ],
+      resources: ['*'],
+    }),
+  );
+
   // S3 buckets
   logBucket.grantReadWrite(ec2Role);
   dagBucket.grantReadWrite(ec2Role);
@@ -101,7 +116,7 @@ export function createIam(
       resources: ['*'],
       conditions: {
         StringLike: {
-          'iam:PassedToService': ['ecs-tasks.amazonaws.com', 'batch.amazonaws.com'],
+          'iam:PassedToService': ['ecs-tasks.amazonaws.com', 'batch.amazonaws.com', 'glue.amazonaws.com'],
         },
       },
     }),
@@ -127,7 +142,7 @@ export function createIam(
     new iam.PolicyStatement({
       actions: ['ssm:GetParameter'],
       resources: [
-        `arn:aws:ssm:${cdk.Stack.of(scope).region}:${cdk.Stack.of(scope).account}:parameter/airflow-test/*`,
+        `arn:aws:ssm:${cdk.Stack.of(scope).region}:${cdk.Stack.of(scope).account}:parameter${ssmPath}/*`,
       ],
     }),
   );

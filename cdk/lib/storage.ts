@@ -18,9 +18,11 @@ export function createStorage(
   scope: Construct,
   vpc: ec2.IVpc,
   dbSg: ec2.ISecurityGroup,
+  suffix?: string,
 ): StorageResources {
+  const nameSuffix = suffix ? `-${suffix}` : '';
   const bucket = new s3.Bucket(scope, 'LogBucket', {
-    bucketName: `airflow-ecs-logs-${cdk.Stack.of(scope).account}-${cdk.Stack.of(scope).region}`,
+    bucketName: `airflow-ecs-logs${nameSuffix}-${cdk.Stack.of(scope).account}-${cdk.Stack.of(scope).region}`,
     blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     removalPolicy: cdk.RemovalPolicy.DESTROY,
     autoDeleteObjects: true,
@@ -28,7 +30,7 @@ export function createStorage(
   });
 
   const dagBucket = new s3.Bucket(scope, 'DagBucket', {
-    bucketName: `airflow-ecs-dags-${cdk.Stack.of(scope).account}-${cdk.Stack.of(scope).region}`,
+    bucketName: `airflow-ecs-dags${nameSuffix}-${cdk.Stack.of(scope).account}-${cdk.Stack.of(scope).region}`,
     blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     removalPolicy: cdk.RemovalPolicy.DESTROY,
     autoDeleteObjects: true,
@@ -53,7 +55,7 @@ export function createStorage(
   });
 
   const ecrRepo = new ecr.Repository(scope, 'EcrRepo', {
-    repositoryName: 'airflow-ecs-worker',
+    repositoryName: `airflow-ecs-worker${nameSuffix}`,
     imageTagMutability: ecr.TagMutability.MUTABLE,
     imageScanOnPush: false,
     removalPolicy: cdk.RemovalPolicy.DESTROY,
