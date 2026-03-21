@@ -13,6 +13,7 @@ export class BatchStack extends cdk.Stack {
     super(scope, id, props);
 
     const { vpc, workerSg, ecrRepoUri, taskRoleArn, ecsExecRoleArn, nlbDns } = props.infra;
+    if (!nlbDns) throw new Error('Batch stack requires NLB — deploy with -c executor=ecs');
     const dagBucketName = `airflow-ecs-dags-${this.account}-${this.region}`;
 
     const { alpha, beta } = createBatch(

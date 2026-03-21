@@ -13,7 +13,7 @@ export function createNetwork(scope: Construct): NetworkResources {
   const vpc = new ec2.Vpc(scope, 'Vpc', {
     ipAddresses: ec2.IpAddresses.cidr('10.0.0.0/16'),
     maxAzs: 2,
-    natGateways: 2,
+    natGateways: 1,
     subnetConfiguration: [
       {
         name: 'public',

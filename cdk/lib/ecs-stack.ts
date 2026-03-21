@@ -13,6 +13,7 @@ export class EcsStack extends cdk.Stack {
     super(scope, id, props);
 
     const { vpc, ecrRepoUri, taskRoleArn, ecsExecRoleArn, nlbDns } = props.infra;
+    if (!nlbDns) throw new Error('ECS stack requires NLB — deploy with -c executor=ecs');
     const dagBucketName = `airflow-ecs-dags-${this.account}-${this.region}`;
 
     const { alphaCluster, betaCluster, alphaTaskDef, betaTaskDef } = createEcs(

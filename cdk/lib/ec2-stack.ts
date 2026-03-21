@@ -17,8 +17,10 @@ export class Ec2Stack extends cdk.Stack {
     // 1. EC2 instance
     const instance = createEc2(this, vpc, ec2Sg, ec2Role);
 
-    // 2. Register EC2 as NLB target (listener + target group)
-    registerNlbTarget(this, vpc, nlbArn, instance);
+    // 2. Register EC2 as NLB target (only when NLB exists — ECS executor mode)
+    if (nlbArn) {
+      registerNlbTarget(this, vpc, nlbArn, instance);
+    }
 
     // Output for SSM tunnel
     new cdk.CfnOutput(this, 'Ec2InstanceId', {

@@ -36,7 +36,7 @@ log_step "2/8 Installing dev tooling (pnpm, docker-compose v2, breeze)"
 # pnpm (needed for simple auth manager UI build)
 if ! command -v pnpm &>/dev/null; then
     log_info "Installing pnpm..."
-    npm install -g pnpm
+    sudo npm install -g pnpm
 fi
 
 # docker-compose v2 (needed for breeze)

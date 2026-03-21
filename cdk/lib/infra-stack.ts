@@ -17,8 +17,8 @@ export interface InfraOutputs {
   ecrRepoUri: string;
   taskRoleArn: string;
   ecsExecRoleArn: string;
-  nlbArn: string;
-  nlbDns: string;
+  nlbArn?: string;
+  nlbDns?: string;
 }
 
 export class InfraStack extends cdk.Stack {
@@ -36,8 +36,9 @@ export class InfraStack extends cdk.Stack {
     // 3. IAM
     const { ec2Role, ecsExecRole, taskRole } = createIam(this, logBucket, dagBucket, dbSecret, ecrRepo);
 
-    // 4. NLB (no target yet - that's in compute stack)
-    const nlb = createNlb(this, vpc, nlbSg);
+    // 4. NLB — only needed for ECS/Batch executor (workers call back to Execution API)
+    const executor = this.node.tryGetContext('executor');
+    const nlb = executor === 'ecs' ? createNlb(this, vpc, nlbSg) : undefined;
 
     // 5. SSM params for infra resources (stable across compute stack updates)
     const region = cdk.Stack.of(this).region;
@@ -56,17 +57,18 @@ export class InfraStack extends cdk.Stack {
     p('SsmLogBucket', '/airflow-test/log-bucket', logBucket.bucketName);
     p('SsmDagBucket', '/airflow-test/dag-bucket', dagBucket.bucketName);
     p('SsmRegion', '/airflow-test/region', region);
-    p('SsmNlbDns', '/airflow-test/nlb-dns', nlb.loadBalancerDnsName);
-
-    new cdk.CfnOutput(this, 'NlbDns', { value: nlb.loadBalancerDnsName });
+    if (nlb) {
+      p('SsmNlbDns', '/airflow-test/nlb-dns', nlb.loadBalancerDnsName);
+      new cdk.CfnOutput(this, 'NlbDns', { value: nlb.loadBalancerDnsName });
+    }
 
     this.outputs = {
       vpc, ec2Sg, workerSg, ec2Role,
       ecrRepoUri: ecrRepo.repositoryUri,
       taskRoleArn: taskRole.roleArn,
       ecsExecRoleArn: ecsExecRole.roleArn,
-      nlbArn: nlb.loadBalancerArn,
-      nlbDns: nlb.loadBalancerDnsName,
+      nlbArn: nlb?.loadBalancerArn,
+      nlbDns: nlb?.loadBalancerDnsName,
     };
   }
 }
