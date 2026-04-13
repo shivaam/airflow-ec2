@@ -12,35 +12,43 @@ Deploy Apache Airflow 3.x on your AWS account in minutes. CDK-based. Not for pro
 - Node.js 18+
 - CDK bootstrapped: `cd cdk && npx cdk bootstrap`
 
-### Deploy
+### Deploy with default settings (LocalExecutor, apache/airflow main)
 
 ```bash
-make deploy             # deploys VPC, RDS, S3, EC2 (~15 min first time)
+make deploy
+make ssh              # then run: bash /opt/airflow-scripts/setup-airflow.sh
+make tunnel           # open http://localhost:8080
 ```
 
-### Connect
+### Deploy with a specific branch/fork
 
 ```bash
-make tunnel             # port-forward 8080 via SSM
-# Then open http://localhost:8080
-
-make ssh                # shell access via SSM
+make deploy REPO=https://github.com/yourfork/airflow.git BRANCH=my-feature
+make ssh              # then run: bash /opt/airflow-scripts/setup-airflow.sh
 ```
 
-### First-time setup on EC2
+### Switch branches (no redeploy needed)
 
 ```bash
-sudo su - ec2-user
-bash /opt/airflow-scripts/setup-airflow.sh    # ~10 min
+# From your laptop:
+make switch-branch BRANCH=another-feature
+
+# Or from EC2 shell:
+af switch another-feature
 ```
 
-This clones Airflow, installs it, builds the UI, configures LocalExecutor with
-RDS + S3, and starts all services.
+### Switch executor (no redeploy needed for local, deploy-ecs needed first for ECS)
+
+```bash
+# From EC2 shell:
+af switch-executor ecs    # switches to ECS multi-team mode
+af switch-executor local  # back to LocalExecutor
+```
 
 ### Tear down
 
 ```bash
-make destroy            # removes everything, no lingering costs
+make destroy
 ```
 
 ## Day-to-day (on EC2)
