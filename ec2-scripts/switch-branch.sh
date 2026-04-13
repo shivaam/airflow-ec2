@@ -8,6 +8,7 @@ set -e
 
 BRANCH="${1:?Usage: switch-branch.sh <branch-name> [repo-url]}"
 REPO="${2:-}"
+REBUILD_IMAGE="${3:-false}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
@@ -44,8 +45,13 @@ log_step "Running DB migrations"
 cd "${AIRFLOW_SRC}"
 airflow db migrate 2>&1 | tail -5
 
-log_step "Rebuilding worker image"
-bash "${SCRIPT_DIR}/rebuild-worker-image.sh"
+# Only rebuild worker image if --rebuild flag is passed
+if [ "${REBUILD_IMAGE}" = "true" ]; then
+    log_step "Rebuilding worker image"
+    bash "${SCRIPT_DIR}/rebuild-worker-image.sh"
+else
+    log_info "Skipping worker image rebuild (set REBUILD_IMAGE=true to rebuild)"
+fi
 
 log_step "Starting services"
 bash "${SCRIPT_DIR}/airflow-ctl.sh" start
