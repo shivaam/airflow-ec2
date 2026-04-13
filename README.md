@@ -55,6 +55,11 @@ af switch-executor ecs      # multi-team ECS Fargate workers
 af switch-executor local    # back to LocalExecutor
 ```
 
+## Two ways to operate
+
+**From your laptop:** `make` targets run commands remotely via SSM — no SSH needed.
+**From the EC2 shell:** `make ssh` to get a shell, then use the `af` CLI interactively.
+
 ## On EC2: the `af` CLI
 
 ```
