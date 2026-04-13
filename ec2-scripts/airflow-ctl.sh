@@ -19,6 +19,11 @@ SERVICES=("api-server" "scheduler" "dag-processor")
 
 _stop() {
     log_info "Stopping Airflow services..."
+    # Stop systemd units if they exist
+    systemctl --user stop airflow-api-server 2>/dev/null || true
+    systemctl --user stop airflow-scheduler 2>/dev/null || true
+    systemctl --user stop airflow-dag-processor 2>/dev/null || true
+    # Also kill any stray processes (from old nohup starts)
     pkill -9 -f "airflow api-server" 2>/dev/null || true
     pkill -9 -f "airflow api_ser" 2>/dev/null || true
     pkill -9 -f "airflow scheduler" 2>/dev/null || true
@@ -31,12 +36,17 @@ _stop() {
 
 _start() {
     log_info "Starting Airflow services..."
-    rm -f "${LOG_DIR}/api-server.log" "${LOG_DIR}/scheduler.log" "${LOG_DIR}/dag-processor.log"
 
-    nohup airflow api-server --port 8080 > "${LOG_DIR}/api-server.log" 2>&1 &
+    # Use systemd-run so services survive SSM session exit
+    systemd-run --user --unit=airflow-api-server --remain-after-exit \
+        bash -c "source ${SCRIPTS_DIR}/env.sh && airflow api-server --port 8080 > ${LOG_DIR}/api-server.log 2>&1"
     sleep 5
-    nohup airflow scheduler > "${LOG_DIR}/scheduler.log" 2>&1 &
-    nohup airflow dag-processor > "${LOG_DIR}/dag-processor.log" 2>&1 &
+
+    systemd-run --user --unit=airflow-scheduler --remain-after-exit \
+        bash -c "source ${SCRIPTS_DIR}/env.sh && airflow scheduler > ${LOG_DIR}/scheduler.log 2>&1"
+
+    systemd-run --user --unit=airflow-dag-processor --remain-after-exit \
+        bash -c "source ${SCRIPTS_DIR}/env.sh && airflow dag-processor > ${LOG_DIR}/dag-processor.log 2>&1"
     sleep 2
 
     _status

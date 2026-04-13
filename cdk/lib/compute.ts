@@ -50,6 +50,9 @@ export function createEc2(
     '# Write SSM prefix config for scripts',
     `echo "SSM_PREFIX=${ssmPrefix || '/airflow-test'}" > /opt/airflow-scripts/ssm-prefix.conf`,
     '',
+    '# Enable systemd linger for ec2-user (so --user services survive logout)',
+    'loginctl enable-linger ec2-user',
+    '',
     '# Source CLI helpers in ec2-user bashrc',
     'echo "source /opt/airflow-scripts/airflow-cli-helpers.sh" >> /home/ec2-user/.bashrc',
   );
