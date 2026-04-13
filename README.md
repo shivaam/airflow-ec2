@@ -2,7 +2,7 @@
 
 Deploy Apache Airflow 3.x on your AWS account in minutes. CDK-based, for development and testing.
 
-**Deploy in ~15 min. Tear down instantly. ~$6/day.**
+**Deploy in ~15 min. Tear down instantly.**
 
 ## Quick Start
 
