@@ -84,35 +84,7 @@ cd "${AIRFLOW_SRC}"
 
 # ── 4. Write airflow.cfg ──────────────────────────────────────────────
 log_step "5/8 Writing airflow.cfg"
-mkdir -p "${AIRFLOW_HOME}"
-
-JWT_SECRET=$(python3 -c "import secrets, base64; print(base64.urlsafe_b64encode(secrets.token_bytes(64)).decode())")
-
-cat > "${AIRFLOW_HOME}/airflow.cfg" << EOF
-[database]
-sql_alchemy_conn = postgresql+psycopg2://${DB_USER}:${DB_PASS}@${DB_ENDPOINT}:5432/${DB_NAME}
-
-[core]
-executor = LocalExecutor
-execution_api_server_url = http://localhost:8080/execution/
-auth_manager = airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager
-simple_auth_manager_all_admins = true
-
-[api]
-expose_config = True
-
-[api_auth]
-jwt_secret = ${JWT_SECRET}
-
-[logging]
-remote_logging = True
-remote_base_log_folder = s3://${LOG_BUCKET}/logs
-remote_log_conn_id = aws_default
-
-[dag_processor]
-dag_bundle_config_list = [{"name": "dags", "classpath": "airflow.providers.amazon.aws.bundles.s3.S3DagBundle", "kwargs": {"bucket_name": "${DAG_BUCKET}", "prefix": "dags"}}]
-EOF
-log_info "Written to ${AIRFLOW_HOME}/airflow.cfg"
+bash "${SCRIPT_DIR}/gen-airflow-cfg.sh" local
 
 # ── 5. Init DB ────────────────────────────────────────────────────────
 log_step "6/8 Initializing DB"
