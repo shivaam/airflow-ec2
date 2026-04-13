@@ -21,6 +21,7 @@ af() {
         deploy-dags) bash "${SCRIPTS_DIR}/deploy-dags.sh" ;;
         rebuild)    bash "${SCRIPTS_DIR}/rebuild-worker-image.sh" ;;
         switch)     bash "${SCRIPTS_DIR}/switch-branch.sh" "$2" ;;
+        switch-executor) bash "${SCRIPTS_DIR}/switch-executor.sh" "$2" ;;
         db)
             source "${SCRIPTS_DIR}/env.sh"
             PGPASSWORD="${DB_PASS}" psql -h "${DB_ENDPOINT}" -U "${DB_USER}" -d "${DB_NAME}"
@@ -83,6 +84,7 @@ af() {
             echo ""
             echo "Development:"
             echo "  af switch <branch>  Switch branch, rebuild, restart"
+            echo "  af switch-executor <local|ecs>  Switch executor, regenerate config"
             echo "  af deploy-dags    Create test DAGs + upload to S3"
             echo ""
             echo "Inspection:"
@@ -104,7 +106,7 @@ af() {
 
 # Tab completion for af
 _af_completions() {
-    local cmds="start stop restart status logs deploy-dags rebuild switch db db-reset ssm config teams dags ecs-tasks batch-jobs ecr-login tunnel help"
+    local cmds="start stop restart status logs deploy-dags rebuild switch switch-executor db db-reset ssm config teams dags ecs-tasks batch-jobs ecr-login tunnel help"
     COMPREPLY=($(compgen -W "$cmds" -- "${COMP_WORDS[1]}"))
 }
 complete -F _af_completions af
