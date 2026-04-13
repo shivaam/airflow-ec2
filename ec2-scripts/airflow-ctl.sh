@@ -19,10 +19,13 @@ SERVICES=("api-server" "scheduler" "dag-processor")
 
 _stop() {
     log_info "Stopping Airflow services..."
-    # Stop systemd units if they exist
+    # Stop and remove systemd transient units if they exist
     systemctl --user stop airflow-api-server 2>/dev/null || true
     systemctl --user stop airflow-scheduler 2>/dev/null || true
     systemctl --user stop airflow-dag-processor 2>/dev/null || true
+    systemctl --user reset-failed airflow-api-server 2>/dev/null || true
+    systemctl --user reset-failed airflow-scheduler 2>/dev/null || true
+    systemctl --user reset-failed airflow-dag-processor 2>/dev/null || true
     # Also kill any stray processes (from old nohup starts)
     pkill -9 -f "airflow api-server" 2>/dev/null || true
     pkill -9 -f "airflow api_ser" 2>/dev/null || true
