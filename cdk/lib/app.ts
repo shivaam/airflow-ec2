@@ -23,11 +23,15 @@ const env = {
 const executor = app.node.tryGetContext('executor');
 const suffix: string = app.node.tryGetContext('suffix') || '';
 const stackSuffix = suffix ? `-${suffix}` : '';
+const repo = app.node.tryGetContext('repo') || 'https://github.com/apache/airflow.git';
+const branch = app.node.tryGetContext('branch') || 'main';
 
 const infra = new InfraStack(app, `AirflowInfra${stackSuffix}`, {
   terminationProtection: false,
   env,
   suffix,
+  airflowRepo: repo,
+  airflowBranch: branch,
 });
 
 new Ec2Stack(app, `AirflowEc2${stackSuffix}`, {

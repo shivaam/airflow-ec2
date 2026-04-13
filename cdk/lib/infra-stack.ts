@@ -23,6 +23,8 @@ export interface InfraOutputs {
 
 export interface InfraStackProps extends cdk.StackProps {
   suffix?: string;
+  airflowRepo?: string;
+  airflowBranch?: string;
 }
 
 export class InfraStack extends cdk.Stack {
@@ -64,6 +66,8 @@ export class InfraStack extends cdk.Stack {
     p('SsmLogBucket', `${ssmPrefix}/log-bucket`, logBucket.bucketName);
     p('SsmDagBucket', `${ssmPrefix}/dag-bucket`, dagBucket.bucketName);
     p('SsmRegion', `${ssmPrefix}/region`, region);
+    p('SsmAirflowRepo', `${ssmPrefix}/airflow-repo`, props?.airflowRepo || 'https://github.com/apache/airflow.git');
+    p('SsmAirflowBranch', `${ssmPrefix}/airflow-branch`, props?.airflowBranch || 'main');
     if (nlb) {
       p('SsmNlbDns', `${ssmPrefix}/nlb-dns`, nlb.loadBalancerDnsName);
       new cdk.CfnOutput(this, 'NlbDns', { value: nlb.loadBalancerDnsName });
