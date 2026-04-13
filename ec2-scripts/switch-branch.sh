@@ -1,12 +1,13 @@
 #!/bin/bash
-# Switch to a different airflow branch, reinstall, rebuild, restart.
+# Switch to a different airflow branch (and optionally a different repo), reinstall, rebuild, restart.
 #
-# Usage: bash /opt/airflow-scripts/switch-branch.sh <branch-name>
+# Usage: bash /opt/airflow-scripts/switch-branch.sh <branch-name> [repo-url]
 #        bash /opt/airflow-scripts/switch-branch.sh main
-#        bash /opt/airflow-scripts/switch-branch.sh my-feature-branch
+#        bash /opt/airflow-scripts/switch-branch.sh my-feature https://github.com/myfork/airflow.git
 set -e
 
-BRANCH="${1:?Usage: switch-branch.sh <branch-name>}"
+BRANCH="${1:?Usage: switch-branch.sh <branch-name> [repo-url]}"
+REPO="${2:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
@@ -16,6 +17,16 @@ bash "${SCRIPT_DIR}/airflow-ctl.sh" stop
 
 log_step "Switching to branch: ${BRANCH}"
 cd "${AIRFLOW_SRC}"
+
+# If a different repo is specified, update the remote
+if [ -n "$REPO" ]; then
+    CURRENT_REMOTE=$(git remote get-url origin)
+    if [ "$CURRENT_REMOTE" != "$REPO" ]; then
+        log_info "Changing remote origin to: ${REPO}"
+        git remote set-url origin "${REPO}"
+    fi
+fi
+
 git fetch --all
 git checkout "${BRANCH}"
 git pull origin "${BRANCH}" 2>/dev/null || true

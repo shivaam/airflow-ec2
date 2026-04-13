@@ -43,6 +43,11 @@ if [ -z "$AIRFLOW_ENV_LOADED" ]; then
     export BETA_TASK_DEF=$(_ssm_get ${SSM_PREFIX}/beta-task-def)
     export PRIVATE_SUBNETS=$(_ssm_get ${SSM_PREFIX}/private-subnets)
     export WORKER_SG=$(_ssm_get ${SSM_PREFIX}/worker-sg)
+    export AIRFLOW_REPO=$(_ssm_get ${SSM_PREFIX}/airflow-repo)
+    export AIRFLOW_BRANCH=$(_ssm_get ${SSM_PREFIX}/airflow-branch)
+    # Fallback defaults if SSM params don't exist yet (pre-upgrade stacks)
+    export AIRFLOW_REPO="${AIRFLOW_REPO:-https://github.com/apache/airflow.git}"
+    export AIRFLOW_BRANCH="${AIRFLOW_BRANCH:-main}"
 
     # DB credentials from Secrets Manager
     _DB_SECRET=$(aws secretsmanager get-secret-value --secret-id "$DB_SECRET_ARN" --query SecretString --output text 2>/dev/null)

@@ -23,11 +23,16 @@ echo "============================================"
 
 # ── 1. Clone repo ─────────────────────────────────────────────────────
 log_step "1/8 Cloning airflow repo"
+log_info "Repo: ${AIRFLOW_REPO}"
+log_info "Branch: ${AIRFLOW_BRANCH}"
 if [ ! -d "${AIRFLOW_SRC}/.git" ]; then
-    git clone https://github.com/apache/airflow.git "${AIRFLOW_SRC}"
+    git clone --branch "${AIRFLOW_BRANCH}" "${AIRFLOW_REPO}" "${AIRFLOW_SRC}"
 else
-    log_info "Repo exists, pulling latest..."
-    cd "${AIRFLOW_SRC}" && git pull
+    log_info "Repo exists, fetching and checking out ${AIRFLOW_BRANCH}..."
+    cd "${AIRFLOW_SRC}"
+    git fetch --all
+    git checkout "${AIRFLOW_BRANCH}"
+    git pull origin "${AIRFLOW_BRANCH}" 2>/dev/null || true
 fi
 
 # ── 2. Install dev tooling ────────────────────────────────────────────
